@@ -1,0 +1,314 @@
+﻿<!DOCTYPE HTML PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>18F Prototype</title>
+    <script type="text/javascript" src="Scripts/jquery.min.js"></script>
+    <script type="text/javascript" src="Scripts/jquery.unobtrusive-ajax.js"></script>
+    <script type="text/javascript" src="Scripts/bootstrap.min.js"></script>
+    <script type="text/javascript" src="Scripts/jquery.tinysort.min.js"></script>
+    <script type="text/javascript" src="Scripts/Pagination.js"></script>
+    <script type="text/javascript" src="Scripts/Food.UnitTest.js"></script>
+    <link href="Content/bootstrap.min.css" type="text/css" rel="stylesheet" />
+    <link href="Content/bootstrap-theme.min.css" type="text/css" rel="stylesheet" />
+    <link rel="stylesheet" type="text/css" href="Content/font-awesome.min.css" />
+    <script type="text/javascript">
+       
+        function IsValid() {
+            if ($('#txtSearch').val() == "") {
+                return false;
+            } else {
+                return true;
+            }
+        }
+        function SearchFood(currentPage) {
+            if (IsValid()) {
+                CallApi($('#txtSearch').val(), currentPage);
+                if ($('#hdnErrorResult').val() != "") {
+                    DiplayError();
+                }
+            }
+            else {
+                $('#lblMessage').show(); $('#lblMessage').text('Search value cannot be empty!');
+            }           
+        }
+        $(document).keypress(function (e) {
+            if (e.keyCode == 13) {
+                SearchFood(1);
+            }
+        });
+        function CallApi(searchValue, currentPage) {
+            if (currentPage == 1) {
+                var url = 'http://api.fda.gov/food/enforcement.json?api_key=fWh0obWpVFaBBNvdpFZYqQBMszwc7nKJY9wKxEJb&search=' + searchValue + '&limit=10';
+            }
+            else {
+                var url = 'http://api.fda.gov/food/enforcement.json?api_key=fWh0obWpVFaBBNvdpFZYqQBMszwc7nKJY9wKxEJb&search=' + searchValue + '&skip=' + currentPage + '&limit=10';
+            }
+            $.ajax({
+                url: url,
+                cache: true,
+                type: 'GET',
+                dataType: "json",
+                crossDomain: true,
+                processData: true,
+            }).done(function (data) {
+                DisplayResult(data, currentPage);
+                $('#hdnErrorResult').val('');
+                $('#hdnStatus').val('');
+                $('#hdnSuccess').val('yes');
+            }).error(function (data) {
+                $('#hdnStatus').val(data.status);
+                var result = JSON.parse(data.responseText);
+                $('#hdnErrorResult').val(result.error.message);
+                $('#hdnSuccess').val('no');
+            });
+        }
+        function PageClick(value) {
+            SearchFood(value);
+        }
+
+        function DisplayResult(data, currentPage) {
+            $('#tbdyFood').html('');
+            $(data.results).each(function (index, el) {
+                var row = $('#trGrid').clone(true);
+                $(row).find('#tdRecallNumber').text(el.recall_number);
+                $(row).find('#tdRecallFirm').text(el.recalling_firm);
+                $(row.find('#tdAddress').text(el.city + "," + el.state + ", " + el.country));
+                $(row).find('#tdDescription').text(el.product_description);
+                $(row).find('#tdStatus').text(el.status);
+                if (el.recall_initiation_date != "") {
+                    var dt = new Date(el.recall_initiation_date.substring(0, 4), el.recall_initiation_date.substring(4, 2), el.recall_initiation_date.substring(el.recall_initiation_date.length - 2));
+                    $(row).find("#tdRecallInitiationDate").text(dt.toLocaleDateString());
+                }
+                $('#tbdyFood').append(row);
+            });
+            Pagination(data.meta.results.total, currentPage);
+            $('#tblError').hide(); $('#tblResult').show();
+        }
+
+        function DiplayError(data) {
+            $('#tblError').show(); $('#tblResult').hide();
+            $('#lblMessage').text($('#hdnErrorResult').val());
+            $('#lblMessage').show();
+        }
+    </script>
+    <style type="text/css">
+        .Cursor {
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .CurrentPage {
+            cursor: none !important;
+            font-weight: normal;
+        }
+
+        td {
+            padding: 0.25em 2em 0.25em 0em;
+            border: 0 none;
+        }
+
+        tr.pager td {
+            padding: 0 0.25em 0 0;
+        }
+    </style>
+</head>
+
+<body>
+    <input type="hidden" id="hdnErrorResult" />
+    <input type="hidden" id="hdnSuccess" />
+    <input type="hidden" id="hdnStatus" />
+    <section id="Header">
+        <div style="border-bottom: 1px solid rgb(100, 100, 100);" class="container-fluid hhs-masthead">
+            <div class="container">
+                <!-- first row -->
+                <div class="row hhs-masthead">
+                    <div class="col-md-12 col-lg-12 topblackustext">
+                        <a title="U.S. Department of Health and Human Services"></a>
+                    </div>
+                </div>
+                <!--/ first row -->
+            </div>
+        </div>
+        <div class="container-fluid bluebgfulllength">
+            <div class="container no-padding">
+                <!-- Second row -->
+                <div class="col-xs-12 col-sm-12 col-md-12 col-lg-12 no-padding">
+
+                    <div class="col-xs-12 col-sm-10 col-md-10 col-lg-11 no-padding">
+                        <div class="col-xs-5 col-sm-3 col-md-2 fda-logo no-padding">
+                            <a href="#" title="FDA Homepage" class="gov-webicon fda white"></a>
+                        </div>
+                        <div class="col-xs-7 col-sm-8 col-md-10 col-lg-7 fda-name no-padding">
+                            <h1>U.S. Food and Drug Administration</h1>
+                            <p class="visible-lg fda-tagline">Protecting and Promoting <em>Your</em> Health</p>
+                        </div>
+                    </div>
+                    <div class="col-xs-12 col-sm-2 col-md-2 col-lg-1 no-padding">
+                        <div class="no-padding text-right">
+                            <img alt="" src="images/18flogo.jpg" class="eighteenfinvisible" />
+                        </div>
+                    </div>
+
+                </div>
+                <!--/ second row -->
+            </div>
+        </div>
+    </section>
+
+
+    <section id="table">
+        <div id="outerwrapper" class="container-fluid">
+            <div style="height: auto;" class="container tableleftright">
+                <div id="row" class="row">
+                    <div class="col-md-12 col-lg-12 no-padding">
+
+
+                        <div class="col-md-12 col-lg-12 crumbs-container">
+                            <ul class="breadcrumb contentpage margin-top20">
+                                <li><a href="#">Home</a></li>
+                                <li class="secondLast"><a href="#">Food</a></li>
+                            </ul>
+                        </div>
+
+
+
+                        <div class="row">
+                            <div class="col-lg-12">
+                                <div class="col-lg-12 col-xs-12">
+                                    <h2>Food Information</h2>
+                                </div>
+                                <div class="col-lg-12 col-xs-12 no-padding">
+                                    <div class="form-group col-lg-12 col-sm-12 col-md-12">
+                                        <label for="email">Food :</label>
+                                        <div class="input-group col-lg-12 col-sm-12 col-xs-12">
+                                            <input type="text" class="form-control" placeholder="Search…" id="txtSearch" />
+                                            <span class="input-group-btn" style="width:70px;">
+                                                <input type="button" class="btn btn-default" value="Search" id="btnSearch" onclick="SearchFood(1);" />
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+
+                        <div class="col-lg-12 paddingtopbot">
+                            <table id="tblError" border="0" cellpadding="0" cellspacing="0">
+                                <tr>
+                                    <td>
+                                        <label id="lblMessage" style="color:red; display:none;"></label>
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                        <div class="col-lg-12 paddingtopbot">
+                            <div class="col-lg-12 no-padding">
+                                <div class="panel panel-default" id="tblResult" style="display:none;">
+                                    <div class="panel-heading">
+                                        Foods Details
+                                    </div>
+                                    <!-- /.panel-heading -->
+                                    <div class="panel-body">
+                                        <div class="no-padding">
+                                            <div class="col-md-12 ">
+
+
+                                            </div>
+                                            <div class="col-lg-12 col-sm-12 col-md-12 col-xs-12 no-padding">
+                                                <div class="table-responsive">
+                                                    <table class="table table-bordered table-striped">
+                                                        <thead>
+                                                            <tr class="table-headerimg">
+                                                                <th>Recall Number</th>
+                                                                <th>Recall Firm</th>
+                                                                <th>Initiation Date</th>
+                                                                <th>Address</th>
+                                                                <th>Description</th>
+                                                                <th>Status</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody id="tbdyFood"></tbody>
+                                                        <tfoot>
+                                                            <tr>
+                                                                <td colspan="6">
+                                                                    <table id="tblPagination" border="0" cellpadding="0" cellspacing="0"></table>
+                                                                </td>
+                                                            </tr>
+                                                        </tfoot>
+                                                    </table>
+
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <!-- /.panel-body -->
+                                </div>
+                            </div>
+                        </div>
+
+
+
+
+
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+
+    <footer class="container-fluid">
+        <div class="container no-padding tableleftright">
+            <div class="col-lg-12 fda-logo footer-heading" style="height:60px;background-color:#003152;">
+
+                <div class="col-lg-12 copyrht text-center">
+                    <p>&copy; 18F Prototype 2015</p>
+                </div>
+            </div>
+            <div class="footer-content">
+                <div class="col-sm-5 col-md-12 col-lg-6">
+                </div>
+
+            </div>
+        </div>
+    </footer>
+
+    <div style="display:none;">
+        <table border="0" cellpadding="0" cellspacing="0">
+            <tr id="trGrid">
+                <td id="tdRecallNumber"></td>
+                <td id="tdRecallFirm"></td>
+                <td id="tdRecallInitiationDate"></td>
+                <td id="tdAddress"></td>
+                <td id="tdDescription"></td>
+                <td id="tdStatus"></td>
+            </tr>
+        </table>
+    </div>
+</body>
+</html>
